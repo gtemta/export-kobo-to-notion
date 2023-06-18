@@ -2,7 +2,7 @@ require("dotenv").config();
 const { NOTION_TOKEN, NOTION_DATABASE_ID } = process.env;
 const { Client } = require("@notionhq/client");
 const notion = new Client({ auth: NOTION_TOKEN });
-const db = require("better-sqlite3")("highlights.sqlite");
+const db = require("better-sqlite3")("KoboReader.sqlite");
 
 async function exportHighlights() {
   const getBookListQuery =
@@ -32,38 +32,79 @@ async function exportHighlights() {
       //     ],
       //   },
       // });
-      const syncedTarget = querySyncedfromDB(title);
-      if () {
-        
+      // Check if the book has already synced
+      const syncedTarget = await notion.databases.query({
+            database_id: NOTION_DATABASE_ID,
+            filter: {
+              and: [
+                { property: "Title", text: { contains: title } },
+                { property: "Exported", checkbox: { equals: true } },
+              ],
+            },
+      });
+      if (syncedTarget.results?.length === 1) {
+        console.log(`Synced ${title} only one found.`);
+        hasOnly = true;
+      } else if (syncedTarget.results?.length > 1) {
+        console.log(`Synced ${title} matched multiple items.`);
+      } else {
+        console.log(`Synced ${title} unexisted.`);
       }
-      let unSyncedTarget = queryUnsyncfromDB(title);
+      isTargetSynced = syncedTarget.results?.length === 1;
+
+
+      let unSyncedTarget = await notion.databases.query({
+        database_id: NOTION_DATABASE_ID,
+        filter: {
+          and: [
+            { property: "Title", text: { contains: title } },
+            { property: "Exported", checkbox: { equals: false } },
+          ],
+        },
+      });
+      if (unSyncedTarget.results?.length === 1) {
+        console.log(`Unsynced ${title} only one found.`);
+      } else if (unSyncedTarget.results?.length > 1) {
+        console.log(`Unsynced ${title} matched multiple items.`);
+      } else {
+        console.log(`Unsynced ${title} unexisted.`);
+      }
 
       // Use the results to determine status of the book
       var valid = false;
-      const unSyncFound = (unSyncedTarget.results.length === 1);
+      const unSyncFound = (unSyncedTarget.results?.length === 1);
       if (unSyncFound) {
         valid = true;
-      } else if (syncedTarget) {
-        onsole.log(`${title} synced. Skip Update Notes`);
+      } else if (isTargetSynced) {
+        console.log(`${title} synced. Skip Update Notes`);
       } else {
         console.log(`${title} unexisted. Try add Entry for it`);
         valid = addEntryByTitle(title);
       }
-      if (valid != true && syncedTarget == false) {
+      if (valid != true && isTargetSynced == false) {
         console.log(`Try Get Again after wait 2 second`);
         await sleep(2000);
         //Check Notion database for the book
-        let unSyncedTarget = queryUnsyncfromDB(title);
-        const unSyncAdded = (unSyncedTarget.results.length === 1);
+        const unSyncedTarget2 = await notion.databases.query({
+          database_id: NOTION_DATABASE_ID,
+          filter: {
+            and: [
+              { property: "Title", text: { contains: title } },
+              { property: "Exported", checkbox: { equals: false } },
+            ],
+          },
+        });
+        const unSyncAdded = (unSyncedTarget2.results?.length === 1);
+        unSyncedTarget = unSyncedTarget2;
         if (unSyncAdded){
           valid = true;
         }
       }
-      valid = false;
 
 
       if (valid) {
-        const pageId = response.results[0].id;
+        console.log(`Start Sync ${title} Highlights`);
+        const pageId = unSyncedTarget.results[0].id;
         var blocks = [];
 
         // Retrieves highlights for the book
@@ -150,60 +191,6 @@ async function addEntryByTitle(bookTitle) {
   } catch (error) {
     console.error('Error adding entry:', error.message);
     return false;
-  }
-}
-
-async function queryUnsyncfromDB(bookTitle) {
-  let hasOnly = false;
-  try {
-    // Create a new entry in the Notion database
-    const response = await notion.databases.query({
-        database_id: NOTION_DATABASE_ID,
-        filter: {
-          and: [
-            { property: "Title", text: { contains: bookTitle } },
-            { property: "Exported", checkbox: { equals: false } },
-          ],
-        },
-    });
-    if (response.results.length === 1) {
-      console.log(`Unsynced ${bookTitle} only one found.`);
-      hasOnly = true;
-    } else if (response.results.length > 1) {
-      console.log(`Unsynced ${bookTitle} matched multiple items.`);
-    } else {
-      console.log(`Unsynced ${bookTitle} unexisted.`);
-    }
-    return response;
-  } catch (error) {
-    console.error('Error query[queryUnsyncfromDB]:', error.message);
-  }
-}
-
-async function querySyncedfromDB(bookTitle) {
-  let hasOnly = false;
-  try {
-    // Create a new entry in the Notion database
-    const response = await notion.databases.query({
-        database_id: NOTION_DATABASE_ID,
-        filter: {
-          and: [
-            { property: "Title", text: { contains: bookTitle } },
-            { property: "Exported", checkbox: { equals: true } },
-          ],
-        },
-    });
-    if (response.results.length === 1) {
-      console.log(`Synced ${bookTitle} only one found.`);
-      hasOnly = true;
-    } else if (response.results.length > 1) {
-      console.log(`Synced ${bookTitle} matched multiple items.`);
-    } else {
-      console.log(`Synced ${bookTitle} unexisted.`);
-    }
-    return hasOnly;
-  } catch (error) {
-    console.error('Error query [querySyncedfromDB]:', error.message);
   }
 }
 
