@@ -1,5 +1,6 @@
 # export-kobo-to-notion
 export-kobo-to-notion
+![image](https://github.com/gtemta/export-kobo-to-notion/assets/12581990/7d5a85d2-34dc-4e28-9c1e-782c9139300e)
 A Node script that exports Kobo highlights to a Notion database. This is base on juliariec's export-kobo-to-notion (https://github.com/juliariec/export-kobo-to-notion)
 
 ## Prerequisites
