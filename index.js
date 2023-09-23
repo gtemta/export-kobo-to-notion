@@ -5,8 +5,9 @@ const notion = new Client({ auth: NOTION_TOKEN });
 const db = require("better-sqlite3")("KoboReader.sqlite");
 
 async function exportHighlights() {
+  console.log(`exportHighlights++`)
   const getBookListQuery =
-    "SELECT DISTINCT content.ContentId, content.Title, content.Attribution AS Author " +
+    "SELECT DISTINCT content.ContentId, content.Title, content.Attribution AS Author,content.DateLastRead " +
     "FROM Bookmark INNER JOIN content " +
     "ON Bookmark.VolumeID = content.ContentID " +
     "ORDER BY content.Title";
@@ -44,7 +45,6 @@ async function exportHighlights() {
       });
       if (syncedTarget.results?.length === 1) {
         console.log(`Synced ${title} only one found.`);
-        hasOnly = true;
       } else if (syncedTarget.results?.length > 1) {
         console.log(`Synced ${title} matched multiple items.`);
       } else {
@@ -76,7 +76,19 @@ async function exportHighlights() {
       if (unSyncFound) {
         valid = true;
       } else if (isTargetSynced) {
-        console.log(`${title} synced. Skip Update Notes`);
+        console.log(`${title} synced. Skip Update Notes only Update Date ${book.DateLastRead}`);
+        const pageId = syncedTarget.results[0].id;
+        // Updates the LastRead date
+        await notion.pages.update({
+          page_id: pageId,
+          properties: {
+            LastReadDate: {
+              date: {
+                start: book.DateLastRead, // 您的日期值
+              },
+            },
+          },
+        });
       } else {
         console.log(`${title} unexisted. Try add Entry for it`);
         valid = addEntryByTitle(title);
@@ -159,7 +171,6 @@ async function exportHighlights() {
           page_id: pageId,
           properties: { Exported: { checkbox: true } },
         });
-
         console.log(`Uploaded highlights for ${title}.`);
       }
     } catch (error) {
