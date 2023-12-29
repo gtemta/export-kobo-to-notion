@@ -38,3 +38,8 @@ You'll also need to configure a Notion "integration" that has access to the data
 1. Run the script with the command `npm start`, and then check your Notion database to confirm that it worked.
 2. The Script should be able to get book title and hightlights from highlights.sqlite.
 3. Create new Entry for unsynced books then sync the highlight for them.
+
+## Sync Content
+1. Book name
+2. Last Read name
+3. Exported (If you want to resync the highlight, make the check box unchecked)
