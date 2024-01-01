@@ -7,19 +7,26 @@ const db = require("better-sqlite3")("KoboReader.sqlite");
 async function exportHighlights() {
   console.log(`exportHighlights++`)
   const getBookListQuery =
-    "SELECT DISTINCT content.ContentId, content.Title, content.Attribution AS Author,content.DateLastRead " +
-    "FROM Bookmark INNER JOIN content " +
-    "ON Bookmark.VolumeID = content.ContentID " +
-    "ORDER BY content.Title";
+  "SELECT DISTINCT content.ContentId, content.Title, content.Attribution AS Author, " +
+  "content.DateLastRead, content.TimeSpentReading " +
+  "FROM Bookmark " +
+  "INNER JOIN content ON Bookmark.VolumeID = content.ContentID " +
+  "ORDER BY content.Title";
+
   const getHighlightsQuery =
     "SELECT Bookmark.Text FROM Bookmark INNER JOIN content ON Bookmark.VolumeID = content.ContentID " +
     "WHERE content.ContentID = ? " +
     "ORDER BY content.DateCreated DESC";
+  
   const bookList = db.prepare(getBookListQuery).all();
 
   for (const book of bookList) {
     try {
-      console.log(`Get ${book.Title} from DB`)
+      console.log(`Book Title: ${book.Title}`);
+      console.log(`Author: ${book.Author}`);
+      console.log(`Date Last Read: ${book.DateLastRead}`);
+      console.log(`Date Spent: ${book.TimeSpentReading}`);
+      console.log('-----------------------------------');
       // Removes subtitles from book title
       const title = await getTitleWithoutSubtitle(book.Title);
       const { isTargetSynced, syncedTarget } = await checkBookSyncStatus(title);
@@ -41,6 +48,7 @@ async function exportHighlights() {
           
           await syncBookHighlights(pageId, highlightsList);
           await updateBookLRTime(pageId, book);
+          await updateBookSpendTime(syncedTarget.results[0].id, book);
         } else {
           console.log(`Invalid sync Target skip update highlight`);
         }
@@ -49,6 +57,7 @@ async function exportHighlights() {
       if (isTargetSynced) {
         // Logic to update LastRead date...
         await updateBookLRTime(syncedTarget.results[0].id, book);
+        await updateBookSpendTime(syncedTarget.results[0].id, book);
       }
     } catch (error) {
       console.log(`Error with ${book.Title}: `, error);
@@ -155,6 +164,27 @@ async function updateBookLRTime(pageId, book) {
         },
       },
     },
+  });
+}
+async function updateBookSpendTime(pageId, book) {
+  const totalSeconds = book.TimeSpentReading;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+  await notion.pages.update({
+    page_id: pageId,
+    properties: {
+      SpendReadingTime: {
+        rich_text: [{
+          type: 'text',
+          text: {
+            content: formattedTime
+          }
+        }]
+      }
+    }
   });
 }
 
