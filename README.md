@@ -10,7 +10,6 @@ You'll need [Git](https://git-scm.com/downloads) and [Node](https://nodejs.org/e
 You'll also need to configure a Notion "integration" that has access to the database you wish to use (your "library" database). Notion has instructions on how to set up an integration [here](https://developers.notion.com/docs#step-1-create-an-integration), and you can give it access to your library database by sharing the database with the integration.
 
 
-https://github.com/gtemta/export-kobo-to-notion/assets/12581990/e3670444-6483-43b2-9b67-ec500d68507e
 
 
 ## How to use this script
@@ -40,8 +39,10 @@ https://github.com/gtemta/export-kobo-to-notion/assets/12581990/e3670444-6483-43
 1. Go to your Notion library database and make sure that the database contains a "Title" property with the name of the book, and a "Exported" checkbox property which defaults to unchecked. (The script will match books based on the title, and then see if highlights have already been uploaded: if not, it will upload them, and then set the "Exported" box to checked).
 
 1. Run the script with the command `npm start`, and then check your Notion database to confirm that it worked.
-2. The Script should be able to get book title and hightlights from highlights.sqlite.
-3. Create new Entry for unsynced books then sync the highlight for them.
+
+https://github.com/gtemta/export-kobo-to-notion/assets/12581990/e3670444-6483-43b2-9b67-ec500d68507e
+3. The Script should be able to get book title and hightlights from highlights.sqlite.
+4. Create new Entry for unsynced books then sync the highlight for them.
 
 ## Sync Content
 1. Book name
