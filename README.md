@@ -42,8 +42,10 @@ Example `.env` file:
    NOTION_DATABASE_ID=776yv4nanf6qx0bdttznd9upfljupb11
    ```
 
-   4. Get Sqlite you can choose one of way 
+   4. Get Sqlite you can choose one of way
+
    4.a Connect your Kobo device and copy `KoboReader.sqlite` from the `.kobo` directory to the `export-kobo-to-notion` folder.
+   
    4.b Execute to automatic get the sql and run following steps for you
    ```
    python .\checkUSBandUpload.py
