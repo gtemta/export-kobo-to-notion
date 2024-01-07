@@ -25,7 +25,7 @@ async function exportHighlights() {
       console.log(`Book Title: ${book.Title}`);
       console.log(`Author: ${book.Author}`);
       console.log(`Date Last Read: ${book.DateLastRead}`);
-      console.log(`Date Spent: ${book.TimeSpentReading}`);
+      console.log(`Time Spent: ${book.TimeSpentReading} seconds`);
       console.log('-----------------------------------');
       // Removes subtitles from book title
       const title = await getTitleWithoutSubtitle(book.Title);

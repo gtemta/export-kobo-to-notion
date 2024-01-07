@@ -3,83 +3,135 @@ import collections.abc
 import os
 import shutil
 import time
-import win32file
-import win32con
 import threading
 import subprocess
-import pyudev
+try:
+    import win32file
+    import win32con
+    import win32gui
+    import win32event
+except ImportError as e:
+    print("Failed to import win32file or win32con:", e)
+    # Handle the failure accordingly
+
 
 
 
 # 定義要複製的文件和目的地目錄
-source_file = "K:\\.kobo\\KoboReader.sqlite"
+source_fileName = "KoboReader.sqlite"
+source_filePath = ".kobo"
+
 destination_dir = "E:\\koboNotion\\export-kobo-to-notion\\"
-destination_file_name = "highlights.sqlite"
+destination_file_name = "KoboReader.sqlite"
 
 def copy_file(source, destination):
     try:
-        shutil.copy(source_file, destination_dir + new_file_name)
-        print(f"文件已成功複製到 {destination_dir + new_file_name}")
+        shutil.copy(source, destination_dir)
+        print(f"copy document success {destination_dir}")
     except Exception as e:
-        print(f"複製文件時出錯：{e}")
+        print(f"copy file encounter error：{e}")
 
-def execute_notion_upload():
-    # 定義Node.js專案目錄
-    nodejs_project_dir = "/path/to/your/nodejs/project"
-
-    # 確保腳本的當前工作目錄設置為Node.js專案目錄
-    os.chdir(nodejs_project_dir)
-
+def execute_notion_upload(destination_dir):
     try:
-        # 使用subprocess運行npm start命令
-        subprocess.Popen(["npm", "start"])
-        print("已觸發 npm start 命令")
-    except Exception as e:
-        print(f"觸發 npm start 命令時出錯：{e}")
+        
+        if not os.path.exists(destination_dir):
+            print("Target do NOT EXIST")
+            return
 
-def copy_upload_note():
+        # Check is already in destination_dir
+        os.chdir(destination_dir)
+
+        
+        process = subprocess.Popen(["npm", "start"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, encoding='utf-8')
+        # Real time result form npm start
+        while True:
+            output_line = process.stdout.readline()
+            if not output_line and process.poll() is not None:
+                break
+            print(output_line.strip())
+
+        # Check npm status
+        if process.returncode == 0:
+            print("npm start SUCCESS")
+        else:
+            print("npm start FAILURE")
+
+    except Exception as e:
+        print(f"Exception：{e}")
+
+
+def copy_upload_note(source_file):
     copy_file(source_file, destination_dir)
-    execute_notion_upload()
+    execute_notion_upload(destination_dir)
+
+def check_for_file(file_path):
+    return os.path.exists(file_path)
 
 def watch_usb_device():
     while True:
-        try:
-            # 監聽USB設備插入事件
-            result = win32file.ReadDirectoryChangesW(
-                "K:\\",  # 監聽的監控目錄，這裡使用D:作為USB監控根目錄，根據實際情況更改
-                1,
-                True,
-                win32con.FILE_NOTIFY_CHANGE_FILE_NAME,
-                None,
-                None,
-            )
+        detect_EReader_connected()
+        time.sleep(10)  # Sleep for 10 seconds
 
-            for action, file_name in result:
-                if action == 1:  # 1 表示文件被創建（插入USB）
-                    print(f"檢測到USB設備插入：{file_name}")
-                    if os.path.basename(file_name) == "USB_FILE_NAME":  # 檢查插入的USB設備是否符合條件
-                        copy_upload_note()
+def get_drive_letters(drive_list):
+    drives = []
+    for i in range(26):  # 26 letters in the English alphabet (A-Z)
+        mask = 1 << i
+        if drive_list & mask:
+            drives.append(chr(65 + i) + ":\\")  # Convert bitmask to drive letter (A-Z)
+    return drives
 
-        except Exception as e:
-            print(f"監聽USB設備時出錯：{e}")
+def is_usb_removable(drive_path):
+    drive_type = win32file.GetDriveType(drive_path)
+    return drive_type == win32file.DRIVE_REMOVABLE
+
+def get_usb_removable_drives():
+    drive_list = win32file.GetLogicalDrives()
+    usb_drives = []
+    
+    for i in range(26):  # Check from A: to Z: drives
+        mask = 1 << i
+        if drive_list & mask:
+            drive_letter = chr(65 + i) + ":\\"
+            if is_usb_removable(drive_letter):
+                usb_drives.append(drive_letter)
+    
+    return usb_drives
 
 def detect_EReader_connected():
-    context = pyudev.Context()
+    print("Try Detect EReader")
+    drive_type_removable = 2
+    drive_list = win32file.GetLogicalDrives()
+    bitmask = 1
+    usb_removable_drives = get_usb_removable_drives()
+    if usb_removable_drives:
+        print("USB Removable Drives:")
+        for drive in usb_removable_drives:
+            file_to_check = os.path.join(drive, source_filePath, source_fileName)
+            if check_for_file(file_to_check):
+                print(f"File found in drive {drive}: {file_to_check}")
+                return True, file_to_check
+            else:
+                print(f"File not found in drive {drive}")
+        return False, None
 
-    # 監聽USB設備的插入事件
-    monitor = pyudev.Monitor.from_netlink(context)
-    monitor.filter_by(subsystem='usb')
+    # if drive_list > 0:
+    #     if drive_list & bitmask:
+    #         drive_name = f"{chr(65 + bin(bitmask).count('1') - 1)}:\\"
+    #         drive_type = win32file.GetDriveType(drive_name)
+    #         if drive_type == drive_type_removable:
+    #             print(f"Detected removable drive: {drive_name}")
 
-    for device in iter(monitor.poll, None):
-        if device.action == 'add':  # 檢測到USB設備插入
-            print(f"檢測到USB設備插入：{device.device_node}")
-            print(f"裝置名稱：{device.get('DEVNAME')}")
-
-            # 在此處添加您想要執行的操作，例如複製文件、啟動應用程序等
+    #             # Here you can perform operations for the connected drive
+    #             # For instance, copy files, launch an application, etc.
+    #     drive_list >>= 1
+    #     bitmask <<= 1
 
 if __name__ == "__main__":
-    if (detect_EReader_connected()):
-        copy_upload_note()
+    # For Windows-specific modules:
+    found, fileName = detect_EReader_connected()
+    if found:
+        copy_upload_note(fileName)
+        print("更新完畢，關閉程式")
     else:
         usb_monitor_thread = threading.Thread(target=watch_usb_device)
         usb_monitor_thread.start()
