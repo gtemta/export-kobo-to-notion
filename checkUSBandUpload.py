@@ -4,13 +4,14 @@ import subprocess
 import threading
 import time
 import logging
+import uploadToNotion
 try:
     import win32file
 except ImportError as e:
     print("Failed to import win32file or win32con:", e)
     # Handle the failure accordingly
 
-
+UsPython = True
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s: %(message)s")
 logger = logging.getLogger()
@@ -38,8 +39,18 @@ def execute_notion_upload(destination_dir):
             return
 
         os.chdir(destination_dir)
-
-        process = subprocess.Popen(["npm", "start"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, encoding='utf-8')
+        if UsPython:
+            process = subprocess.Popen(
+                ["python", "uploadToNotion.py"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                encoding='utf-8'
+            )
+        else:
+            process = subprocess.Popen(
+                ["npm", "start"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                shell=True, encoding='utf-8')
         while True:
             output_line = process.stdout.readline()
             if not output_line and process.poll() is not None:
@@ -47,9 +58,9 @@ def execute_notion_upload(destination_dir):
             print(output_line.strip())  # For real-time output
 
         if process.returncode == 0:
-            logging.info("npm start command succeeded")
+            logging.info("upload to Notion succeeded")
         else:
-            logging.error("npm start command failed")
+            logging.error("upload to Notion failed")
 
     except Exception as e:
         logging.error(f"Exception: {e}")

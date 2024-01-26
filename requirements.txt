@@ -1,0 +1,3 @@
+# requirements.txt
+notion-client==3.1.0
+pywin32==305
