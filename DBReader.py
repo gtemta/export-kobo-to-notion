@@ -43,12 +43,15 @@ class Book:
 
 
 def getBookInfoFromDB() :
-    bookList = []
-    cursor = db.execute(getBookListQuery)
-    for row in cursor.fetchall():
-        id, title, author, date_last_read, time_spent_reading = row
-        book = Book(id, title, author, date_last_read, time_spent_reading)
-        bookList.append(book)
+    try:
+        bookList = []
+        cursor = db.execute(getBookListQuery)
+        for row in cursor.fetchall():
+            id, title, author, date_last_read, time_spent_reading = row
+            book = Book(id, title, author, date_last_read, time_spent_reading)
+            bookList.append(book)
+    except Exception as e:
+        print(f"Error getBookInfoFromDB : {e}")
     return bookList
 
 def getHLFromDB(content_id) :

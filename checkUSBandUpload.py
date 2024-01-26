@@ -40,12 +40,7 @@ def execute_notion_upload(destination_dir):
 
         os.chdir(destination_dir)
         if UsPython:
-            process = subprocess.Popen(
-                ["python", "uploadToNotion.py"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                encoding='utf-8'
-            )
+            uploadToNotion.export_highlights()
         else:
             process = subprocess.Popen(
                 ["npm", "start"],

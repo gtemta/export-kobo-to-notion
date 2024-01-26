@@ -1,7 +1,6 @@
 import os
 import DBReader
 from notion_client import Client
-import logging
 from datetime import datetime
 import math
 
@@ -18,10 +17,6 @@ NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 # Initialize Notion client
 notion = Client(auth=NOTION_TOKEN)
 database = notion.databases.retrieve(NOTION_DATABASE_ID)
-enableLog = 1
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s: %(message)s")
-logger = logging.getLogger()
 
 # Define your custom functions getTitleWithoutSubtitle, checkBookSyncStatus, addEntryByTitle,
 # getUnSyncTarget, syncBookHighlights, updateBookLRTime, updateBookSpendTime as needed
@@ -175,7 +170,6 @@ def append_blocks_to_page(page_id, blocks):
 
 def export_highlights():
     print("exportHighlights++")
-    
     bookList = DBReader.getBookInfoFromDB()
     print(f"Books Count: {len(bookList)}")
     for book in bookList:
@@ -209,6 +203,7 @@ def export_highlights():
                 update_book_spend_time(page_id, book.get_time_spent_reading())
         except Exception as error:
             print(f"Error with {book.get_title()}: {error}")
+    
 
 
 def main():
