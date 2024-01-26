@@ -55,7 +55,9 @@ Example `.env` file:
 
 6. Verify the highlights in your Notion database.
 
-![Additional Image](https://github.com/gtemta/export-kobo-to-notion/assets/12581990/e3670444-6483-43b2-9b67-ec500d68507e)
+## Demo Video
+https://github.com/gtemta/export-kobo-to-notion/assets/12581990/edf1d6fc-a091-421b-bff6-b3a6863a9bf3
+
 
 ## Script Features
 - Retrieves book titles and highlights from `KoboReader.sqlite`.
