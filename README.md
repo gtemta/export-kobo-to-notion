@@ -58,6 +58,10 @@ Example `.env` file:
 ## Demo Video
 https://github.com/gtemta/export-kobo-to-notion/assets/12581990/edf1d6fc-a091-421b-bff6-b3a6863a9bf3
 
+Personal Example
+https://danteyfchen.notion.site/Kobo-EReader-Export-3ef27db4954a4e06b6261b2c5a704a4f?pvs=4
+
+
 
 ## Script Features
 - Retrieves book titles and highlights from `KoboReader.sqlite`.
