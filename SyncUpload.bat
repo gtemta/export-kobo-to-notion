@@ -1,0 +1,1 @@
+python .\checkUSBandUpload.py
