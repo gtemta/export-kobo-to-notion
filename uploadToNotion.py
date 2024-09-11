@@ -62,18 +62,65 @@ def check_target(title, isExportDone=True):
             "pageId": None,
         }
 
-
-def update_book_lr_time(page_id, lastReadTime):
-    notion.pages.update(
-        page_id=page_id,
-        properties={
-            "LastReadDate": {
-                "date": {
-                    "start": lastReadTime,
+def update_book_time(page_id, time_property_name, time_value):
+    if time_value is not None:
+        notion.pages.update(
+            page_id=page_id,
+            properties={
+                time_property_name: {
+                    "date": {
+                        "start": time_value,
+                    },
                 },
             },
-        },
-    )
+        )
+    else:
+        print(f"No value provided for {time_property_name}, skipping update.")
+
+def update_book_number(page_id, field_name, value):
+    if value is not None:  # 檢查數值是否有提供
+        notion.pages.update(
+            page_id=page_id,
+            properties={
+                field_name: {
+                    "number": value  # 使用 number 屬性來更新數字
+                }
+            }
+        )
+    else:
+        print(f"No value provided for {field_name}, skipping update.")
+
+def update_percentage(page_id, value):
+    if value is not None:  # 檢查數值是否有提供
+        notion.pages.update(
+                page_id=page_id,
+                properties={
+                    "PercentageRead": {
+                        "number": value  # 使用 number 屬性來更新數字
+                    }
+                }
+            )
+    else:
+        print(f"No value provided for PercentageRead, skipping update.")
+
+def update_book_textinfo(page_id, text_property_name, text_value):
+    if text_value:
+        notion.pages.update(
+            page_id=page_id,
+            properties={
+                text_property_name: {
+                    "rich_text": [
+                    {
+                        "text": {
+                                "content": text_value
+                        }
+                    }
+                    ]
+                },
+            },
+        )
+    else:
+        print(f"No value provided for {text_property_name}, skipping update.")
 
 def update_book_spend_time(page_id, bookSpendingTime):
     hours = math.floor(bookSpendingTime / 3600)
@@ -96,6 +143,70 @@ def update_book_spend_time(page_id, bookSpendingTime):
             },
         },
     )
+
+def update_time_related(page_id, book):
+    update_book_spend_time(page_id, book.get_time_spent_reading())
+    update_book_time(page_id,"LastReadDate", book.get_date_last_read())
+    update_book_time(page_id, "LastFinishedReadTime", book.get_last_time_finished_reading())
+    update_percentage(page_id, book.get_percent_read())
+
+def update_book_people(page_id, publisher_name=None, author_name=None):
+    properties_to_update = {}
+
+    # 檢查 publisher_name 是否有值
+    if publisher_name:
+        properties_to_update["Publisher"] = {
+            "rich_text": [
+                {
+                    "text": {
+                            "content": publisher_name
+                    }
+                }
+            ]
+        }
+    
+    # 檢查 author_name 是否有值
+    if author_name:
+        properties_to_update["Author"] = {
+            "rich_text": [
+                {
+                    "text": {
+                            "content": author_name
+                    }
+                }
+            ]
+        }
+    
+    # 如果有需要更新的欄位才進行 API 調用
+    if properties_to_update:
+        notion.pages.update(
+            page_id=page_id,
+            properties=properties_to_update
+        )
+    else:
+        print("No publisher or author name provided, skipping update.")
+
+def update_book_subtitle(page_id, subtitle):
+    if subtitle:  # 檢查 subtitle 是否有值
+        notion.pages.update(
+            page_id=page_id,
+            properties={
+                "Subtitle": {
+                    "rich_text": [
+                        {
+                            "text": {
+                                "content": subtitle
+                            }
+                        }
+                    ]
+                },
+            },
+        )
+    else:
+        print("No subtitle provided, skipping update.")
+
+
+
 
 def sync_book_highlights(page_id, highlights_list):
     # print(f"Start Sync Highlights for pageId: {page_id}")
@@ -174,17 +285,28 @@ def export_highlights():
     print(f"Books Count: {len(bookList)}")
     for book in bookList:
         print(f"Book Title: {book.get_title()}")
+        print(f"Subtitle: {book.get_subtitle()}")
         print(f"Author: {book.get_author()}")
+        print(f"Publisher: {book.get_publisher()}")
+        print(f"Description: {book.get_description()}")
+        print(f"ISBN: {book.get_isbn()}")
+        print(f"Percent Read: {book.get_percent_read()}%")
         print(f"Date Last Read: {book.get_date_last_read()}")
         print(f"Read Time Spent: {book.get_time_spent_reading()} seconds")
+        print(f"Last Time Finished Reading: {book.get_last_time_finished_reading()}")
         print("-----------------------------------")
+
         try:
             title = get_title_without_subtitle(book.get_title())
             bookStatus = check_target(title, True)
             if bookStatus["is_target_valid"]:
                 print("Already Exported. only update reading Time")
-                update_book_lr_time(bookStatus["pageId"], book.get_date_last_read())
-                update_book_spend_time(bookStatus["pageId"], book.get_time_spent_reading())
+                update_time_related(bookStatus["pageId"], book)
+                update_book_subtitle(bookStatus["pageId"], book.get_subtitle())
+                update_book_people(bookStatus["pageId"], book.get_publisher(), book.get_author())
+                update_book_textinfo(bookStatus["pageId"], "Description", book.get_description())
+                update_book_textinfo(bookStatus["pageId"], "ISBN", book.get_isbn())
+        
             else:
                 unDoneObj = check_target(title, False)
                 page_id = unDoneObj["pageId"]
@@ -197,10 +319,12 @@ def export_highlights():
                     print(f"{title} exist. Append HL after original HL")
 
                 highlights_list = DBReader.getHLFromDB(book.get_id())
+                update_time_related(page_id, book)
+                update_book_subtitle(page_id, book.get_subtitle())
+                update_book_people(page_id, book.get_publisher(), book.get_author())
+                update_book_textinfo(page_id, "Description", book.get_description())
+                update_book_textinfo(page_id, "ISBN", book.get_isbn())
 
-                sync_book_highlights(page_id, highlights_list)
-                update_book_lr_time(page_id, book.get_date_last_read())
-                update_book_spend_time(page_id, book.get_time_spent_reading())
         except Exception as error:
             print(f"Error with {book.get_title()}: {error}")
     
