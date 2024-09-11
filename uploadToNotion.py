@@ -302,10 +302,6 @@ def export_highlights():
             if bookStatus["is_target_valid"]:
                 print("Already Exported. only update reading Time")
                 update_time_related(bookStatus["pageId"], book)
-                update_book_subtitle(bookStatus["pageId"], book.get_subtitle())
-                update_book_people(bookStatus["pageId"], book.get_publisher(), book.get_author())
-                update_book_textinfo(bookStatus["pageId"], "Description", book.get_description())
-                update_book_textinfo(bookStatus["pageId"], "ISBN", book.get_isbn())
         
             else:
                 unDoneObj = check_target(title, False)
@@ -319,6 +315,7 @@ def export_highlights():
                     print(f"{title} exist. Append HL after original HL")
 
                 highlights_list = DBReader.getHLFromDB(book.get_id())
+                sync_book_highlights(page_id, highlights_list)
                 update_time_related(page_id, book)
                 update_book_subtitle(page_id, book.get_subtitle())
                 update_book_people(page_id, book.get_publisher(), book.get_author())
